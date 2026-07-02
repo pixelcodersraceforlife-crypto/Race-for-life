@@ -227,6 +227,50 @@ function getFreeLane(currentEnemies, yPosition, preferredLane = null) {
         [shuffledLanes[i], shuffledLanes[j]] = [shuffledLanes[j], shuffledLanes[i]];
     }
     
+    function spawnEnemyAtSafePosition(yPosition = null, preferredLane = null) {
+    const currentEnemies = document.querySelectorAll('.enemy');
+    
+    if (yPosition === null) {
+        yPosition = -300 - Math.random() * 400;
+    }
+    
+    const freeLane = getFreeLane(currentEnemies, yPosition, preferredLane);
+    
+    const enemyCar = document.createElement('div');
+    const carType = getRandomCarType();
+    enemyCar.className = 'enemy ' + carType;
+    enemyCar.y = yPosition;
+    enemyCar.style.top = enemyCar.y + "px";
+    enemyCar.style.left = freeLane + "px";
+    
+    // Configuração de tamanhos para os novos carros
+    if (carType === 'truck') {
+        enemyCar.style.height = '120px';
+        enemyCar.style.width = '80px';
+        enemyCar.style.backgroundSize = '80px 120px';
+    } else if (carType === 'police' || carType === 'taxi') {
+        enemyCar.style.height = '100px';
+        enemyCar.style.width = '65px';
+        enemyCar.style.backgroundSize = '65px 100px';
+    } else {
+        enemyCar.style.height = '100px';
+        enemyCar.style.width = '60px';
+        enemyCar.style.backgroundSize = '60px 100px';
+    }
+    
+    let speedMultiplier = 1;
+    if (carType === 'sports') speedMultiplier = 1.3;
+    if (carType === 'truck') speedMultiplier = 0.7;
+    if (carType === 'police') speedMultiplier = 1.1;
+    if (carType === 'taxi') speedMultiplier = 0.9;
+    if (carType === 'black' || carType === 'white') speedMultiplier = 1.0;
+    
+    enemyCar.dataset.speedMultiplier = speedMultiplier;
+    
+    gameArea.appendChild(enemyCar);
+    return enemyCar;
+}
+
     for (const lane of shuffledLanes) {
         if (!isLaneOccupied(lane, currentEnemies, yPosition)) {
             return lane;
@@ -236,9 +280,89 @@ function getFreeLane(currentEnemies, yPosition, preferredLane = null) {
     return LANES[Math.floor(Math.random() * LANES.length)];
 }
 
+function moveEnemy(car) {
+    const enemies = document.querySelectorAll('.enemy');
+    const gameAreaHeight = gameArea.offsetHeight;
+    
+    for (let item of enemies) {
+        if (isCollide(car, item) && !player.shieldActive) {
+            endGame();
+            return;
+        }
+        
+        const speedMultiplier = parseFloat(item.dataset.speedMultiplier) || 1;
+        item.y += player.speed * speedMultiplier;
+        item.style.top = item.y + "px";
+        
+        // Reposicionar quando sair da tela
+        if (item.y > gameAreaHeight + 200) {
+            item.y = -300 - Math.random() * 400;
+            const currentEnemies = document.querySelectorAll('.enemy');
+            const newLane = getFreeLane(currentEnemies, item.y);
+            item.style.left = newLane + "px";
+            
+            // Chance de mudar o tipo de carro
+            if (Math.random() > 0.7) {
+                const newType = getRandomCarType();
+                item.className = 'enemy ' + newType;
+                
+                if (newType === 'truck') {
+                    item.style.height = '120px';
+                    item.style.width = '80px';
+                    item.style.backgroundSize = '80px 120px';
+                } else if (newType === 'police' || newType === 'taxi') {
+                    item.style.height = '100px';
+                    item.style.width = '65px';
+                    item.style.backgroundSize = '65px 100px';
+                } else {
+                    item.style.height = '100px';
+                    item.style.width = '60px';
+                    item.style.backgroundSize = '60px 100px';
+                }
+                
+                let newSpeedMultiplier = 1;
+                if (newType === 'sports') newSpeedMultiplier = 1.3;
+                if (newType === 'truck') newSpeedMultiplier = 0.7;
+                if (newType === 'police') newSpeedMultiplier = 1.1;
+                if (newType === 'taxi') newSpeedMultiplier = 0.9;
+                item.dataset.speedMultiplier = newSpeedMultiplier;
+            }
+        }
+        
+        // Movimento lateral para carros esportivos
+        if (item.classList.contains('sports') && Math.random() > 0.7) {
+            const swing = Math.sin(Date.now() / 200) * 3;
+            item.style.transform = `translateX(${swing}px)`;
+        }
+        // Carro da polícia pisca as luzes
+        else if (item.classList.contains('police')) {
+            const flash = Math.sin(Date.now() / 100) > 0 ? 'rgba(255,0,0,0.3)' : 'rgba(0,0,255,0.3)';
+            item.style.boxShadow = `0 0 10px ${flash}`;
+        }
+        // Taxi tem comportamento normal
+        else {
+            item.style.transform = 'translateX(0px)';
+        }
+    }
+    
+    // Manter número mínimo de inimigos
+    const enemyCount = document.querySelectorAll('.enemy').length;
+    if (enemyCount < 4) {
+        const topEnemies = document.querySelectorAll('.enemy');
+        const existingTopPositions = Array.from(topEnemies).map(e => e.y);
+        const hasNearTop = existingTopPositions.some(y => y > -200 && y < 100);
+        
+        if (!hasNearTop) {
+            spawnEnemyAtSafePosition(-350);
+        }
+    }
+}
+
 function getRandomCarType() {
-    const carTypes = ['red', 'blue', 'green', 'yellow', 'purple', 'truck', 'sports'];
-    const weights = [0.2, 0.2, 0.2, 0.1, 0.1, 0.1, 0.1];
+    const carTypes = ['red', 'blue', 'green', 'yellow', 'purple', 'truck', 'sports', 
+                      'orange', 'pink', 'black', 'white', 'police', 'taxi'];
+    const weights = [0.12, 0.12, 0.12, 0.08, 0.08, 0.07, 0.07, 
+                     0.08, 0.08, 0.06, 0.06, 0.03, 0.03];
     
     let random = Math.random();
     let sum = 0;

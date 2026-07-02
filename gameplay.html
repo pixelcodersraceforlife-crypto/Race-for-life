@@ -1,69 +1,2453 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RACE FOR LIFE</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RACE FOR LIFE - VERSÃO FINAL</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
             font-family: 'Arial', sans-serif;
+            background: #0a0a2a;
         }
-        .instructions {
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        @keyframes shieldPulse { 0% { box-shadow: 0 0 5px cyan; } 50% { box-shadow: 0 0 25px cyan; } 100% { box-shadow: 0 0 5px cyan; } }
+        @keyframes boostPulse { 0% { filter: hue-rotate(0deg) brightness(1.2); } 100% { filter: hue-rotate(360deg) brightness(1.2); } }
+        @keyframes keyGlow { 0% { filter: drop-shadow(0 0 5px gold); } 50% { filter: drop-shadow(0 0 20px #ffaa00); } 100% { filter: drop-shadow(0 0 5px gold); } }
+        @keyframes policeLight { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+        @keyframes policeLightBlue { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        
+        @keyframes blinkLight {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        @keyframes blinkLightFast {
+            0%, 100% { opacity: 0.1; transform: scale(0.6); }
+            25% { opacity: 1; transform: scale(1.3); }
+            75% { opacity: 0.8; transform: scale(1.1); }
+        }
+        
+        .carGame {
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(to bottom, #1a2980, #26d0ce);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .gameArea {
+            height: 100vh;
+            width: 1800px;
+            margin: auto;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+            background-image: url('assets/sao_luis.png');
+            background-repeat: repeat-y;
+            background-position: center top;
+            background-size: 1800px auto;
+            transition: filter 0.2s;
+            will-change: transform;
+        }
+
+        .car {
+            height: 215px;
+            width: 145px;
             position: absolute;
+            background: url('assets/player_car.png');
+            background-repeat: no-repeat;
+            background-size: 145px 215px;
+            z-index: 20;
+            filter: drop-shadow(6px 8px 16px rgba(0,0,0,0.8));
+            transition: left 0.04s ease-out, top 0.04s ease-out, transform 0.06s ease-out;
+            border-radius: 18px;
+            transform: rotate(0deg);
+            will-change: transform, left, top;
+        }
+        
+        .car.tilt-left { transform: rotate(-5deg); }
+        .car.tilt-right { transform: rotate(5deg); }
+
+        .shieldActive { 
+            animation: shieldPulse 0.9s infinite; 
+            border: 4px solid cyan; 
+            border-radius: 20px; 
+        }
+        
+        .boostActive { animation: boostPulse 0.4s infinite; }
+
+        .enemy {
+            position: absolute;
+            background-repeat: no-repeat;
+            z-index: 15;
+            filter: drop-shadow(6px 8px 12px rgba(0,0,0,0.6));
+            border-radius: 16px;
+            will-change: transform, top, left;
+            transition: left 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        
+        .enemy.red, .enemy.blue, .enemy.green, .enemy.yellow, .enemy.purple, 
+        .enemy.orange, .enemy.pink, .enemy.black, .enemy.white {
+            height: 205px;
+            width: 135px;
+            background-size: 135px 205px;
+        }
+        .enemy.sports { height: 195px; width: 131px; background-size: 131px 195px; }
+        .enemy.truck { height: 255px; width: 175px; background-size: 175px 255px; }
+        .enemy.police, .enemy.taxi { height: 211px; width: 143px; background-size: 143px 211px; }
+
+        .enemy.red { background-image: url('assets/enemy_red.png'); }
+        .enemy.blue { background-image: url('assets/enemy_blue.png'); }
+        .enemy.green { background-image: url('assets/enemy_green.png'); }
+        .enemy.yellow { background-image: url('assets/enemy_yellow.png'); }
+        .enemy.purple { background-image: url('assets/enemy_purple.png'); }
+        .enemy.orange { background-image: url('assets/enemy_orange.png'); }
+        .enemy.pink { background-image: url('assets/enemy_pink.png'); }
+        .enemy.black { background-image: url('assets/enemy_black.png'); }
+        .enemy.white { background-image: url('assets/enemy_white.png'); }
+        .enemy.sports { background-image: url('assets/enemy_sports.png'); }
+        .enemy.truck { background-image: url('assets/enemy_truck.png'); }
+
+        .enemy.police { 
+            background-image: url('assets/enemy_police.png');
+            position: relative;
+        }
+        .enemy.police::before {
+            content: '';
+            position: absolute;
+            top: 18px;
+            left: 12px;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, rgba(255,0,0,0.9) 0%, rgba(255,0,0,0) 70%);
+            border-radius: 50%;
+            animation: policeLight 0.4s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 5;
+            filter: blur(2px);
+        }
+        .enemy.police::after {
+            content: '';
+            position: absolute;
+            top: 18px;
+            right: 12px;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, rgba(0,100,255,0.9) 0%, rgba(0,100,255,0) 70%);
+            border-radius: 50%;
+            animation: policeLightBlue 0.4s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 5;
+            filter: blur(2px);
+        }
+        .enemy.taxi { background-image: url('assets/enemy_taxi.png'); }
+
+        .seta-light {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #FFD700;
+            box-shadow: 0 0 30px #FFD700, 0 0 60px #FFA500, 0 0 90px #FF8800;
+            animation: blinkLightFast 0.3s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 17;
+            border: 2px solid rgba(255,215,0,0.6);
+        }
+        .seta-light.direita { 
+            right: 5px; 
+            background: radial-gradient(circle, #FFD700, #FF8C00);
+        }
+        .seta-light.esquerda { 
+            left: 5px; 
+            background: radial-gradient(circle, #FFD700, #FF8C00);
+        }
+        .seta-light.top { top: 5px; }
+        .seta-light.bottom { bottom: 5px; }
+
+        .seta-grafica {
+            position: absolute;
+            font-size: 70px;
+            font-weight: bold;
+            color: #FFD700;
+            z-index: 18;
+            pointer-events: none;
+            text-shadow: 0 0 30px rgba(255,215,0,0.9), 0 0 60px rgba(255,215,0,0.5), 0 0 90px rgba(255,215,0,0.3);
+            animation: blinkLight 0.4s ease-in-out infinite;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .seta-grafica.show { opacity: 1; }
+
+        .coin { height: 86px; width: 86px; background: url('assets/coin.png'); background-size: 86px 86px; position: absolute; border-radius: 50%; animation: spin 1.8s linear infinite; z-index: 12; filter: drop-shadow(0 0 18px gold); will-change: transform; }
+        .speedBoost { height: 86px; width: 86px; background: url('assets/boost.png'); background-size: 86px 86px; position: absolute; border-radius: 16px; animation: pulse 0.9s infinite; z-index: 12; filter: drop-shadow(0 0 18px #00ff88); will-change: transform; }
+        .shield { height: 86px; width: 86px; background: url('assets/shield.png'); background-size: 86px 86px; position: absolute; border-radius: 16px; animation: float 2s ease-in-out infinite; z-index: 12; filter: drop-shadow(0 0 18px #0ff); will-change: transform; }
+        .keyItem { height: 86px; width: 86px; background: url('assets/key.png'); background-size: 86px 86px; position: absolute; border-radius: 16px; animation: keyGlow 1.5s ease-in-out infinite, float 2s ease-in-out infinite; z-index: 12; filter: drop-shadow(0 0 15px gold); will-change: transform; }
+        .gemItem { height: 86px; width: 86px; background: url('assets/gem.png'); background-size: 86px 86px; position: absolute; border-radius: 16px; animation: gemGlow 1.2s ease-in-out infinite, float 2.5s ease-in-out infinite; z-index: 12; filter: drop-shadow(0 0 20px #ff44ff); will-change: transform; }
+        .luckItem { height: 86px; width: 86px; background: url('assets/luck.png'); background-size: 86px 86px; position: absolute; border-radius: 16px; animation: luckGlow 0.7s ease-in-out infinite, float 2s ease-in-out infinite; z-index: 12; filter: drop-shadow(0 0 20px #ff8800); will-change: transform; }
+
+        /* ===== PAINEL UNIFICADO MINIMALISTA (canto superior direito) ===== */
+        .hudPanel {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 14px;
+            padding: 10px 14px;
+            min-width: 140px;
+            z-index: 200;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            font-family: 'Segoe UI', monospace;
+            color: #fff;
+            transition: all 0.2s;
+        }
+        .hudPanel .hud-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 0;
+            font-size: 12px;
+            gap: 12px;
+        }
+        .hudPanel .hud-row .label {
+            opacity: 0.6;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .hudPanel .hud-row .value {
+            font-weight: bold;
+            font-size: 13px;
+            color: #ffd966;
+        }
+        .hudPanel .hud-row .value.score { font-size: 18px; color: #ffd700; }
+        .hudPanel .hud-row .value.level { color: #66ccff; }
+        .hudPanel .hud-divider {
+            border-top: 1px solid rgba(255,255,255,0.06);
+            margin: 4px 0;
+        }
+        .hudPanel .hud-inv {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+        .hudPanel .hud-inv .inv-badge {
+            background: rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 1px 8px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .hudPanel .hud-inv .inv-badge .icon { font-size: 13px; }
+        .hudPanel .hud-inv .inv-badge .count { font-weight: bold; color: #ffd966; }
+        .hudPanel .hud-inv .inv-badge.key-badge .count { color: #ffaa33; }
+        .hudPanel .hud-inv .inv-badge.gem-badge .count { color: #ff44ff; }
+        .hudPanel .hud-inv .inv-badge.luck-badge .count { color: #ff8800; }
+        .hudPanel .hud-inv .inv-badge.boost-badge .count { color: #00ff88; }
+        .hudPanel .hud-inv .inv-badge.shield-badge .count { color: #44ddff; }
+        .hudPanel .hud-record {
+            font-size: 10px;
+            color: rgba(255,215,0,0.5);
+            text-align: right;
+            margin-top: 2px;
+        }
+        .hudPanel .hud-powerup-bars {
+            margin-top: 4px;
+        }
+        .hudPanel .hud-powerup-bars .bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            margin: 1px 0;
+        }
+        .hudPanel .hud-powerup-bars .bar-track {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .hudPanel .hud-powerup-bars .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.08s linear;
+        }
+        .hudPanel .hud-powerup-bars .bar-fill.boost-fill { background: linear-gradient(90deg, #00ff66, #ffff44); }
+        .hudPanel .hud-powerup-bars .bar-fill.shield-fill { background: linear-gradient(90deg, cyan, #3399ff); }
+        .hudPanel .hud-powerup-bars .bar-fill.luck-fill { background: linear-gradient(90deg, #ff8800, #ffcc00); }
+
+        .comboDisplay {
+            position: fixed;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Arial', sans-serif;
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffd700;
+            z-index: 180;
+            text-shadow: 0 0 30px rgba(255,215,0,0.3);
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .comboDisplay.active { opacity: 1; }
+
+        .messageArea {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            z-index: 250;
+            pointer-events: none;
+        }
+        
+        .floatingMessage {
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            color: #ffffff;
+            padding: 10px 22px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: 'Segoe UI', monospace;
+            animation: fadeUp 1.8s ease-out forwards;
+            white-space: nowrap;
+            border: 2px solid rgba(255,255,255,0.12);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            letter-spacing: 0.3px;
+            min-width: 180px;
+            text-align: center;
+        }
+        
+        .floatingMessage.boost { color: #00ff88; border-color: rgba(0,255,136,0.3); }
+        .floatingMessage.shield { color: #44ddff; border-color: rgba(68,221,255,0.3); }
+        .floatingMessage.key { color: #ffaa33; border-color: rgba(255,170,51,0.3); }
+        .floatingMessage.respawn { color: #ffdd44; border-color: rgba(255,221,68,0.3); }
+        .floatingMessage.item { color: #99ff99; border-color: rgba(153,255,153,0.2); }
+        .floatingMessage.warning { color: #ff6666; border-color: rgba(255,102,102,0.2); }
+        .floatingMessage.gem { color: #ff44ff; border-color: rgba(255,68,255,0.3); }
+        .floatingMessage.luck { color: #ff8800; border-color: rgba(255,136,0,0.3); }
+        
+        @keyframes fadeUp {
+            0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+            15% { opacity: 1; transform: translateY(0) scale(1); }
+            75% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-30px) scale(0.95); }
+        }
+
+        .continueScreen {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1a2a4f, #0f1a2f);
+            backdrop-filter: blur(20px);
+            color: white;
+            z-index: 500;
+            text-align: center;
+            border: 3px solid #ffcc44;
+            padding: 35px 30px;
+            width: 65%;
+            max-width: 500px;
+            border-radius: 50px;
+            box-shadow: 0 35px 55px black;
+        }
+        .continueScreen h2 { color: #ff4444; margin-bottom: 20px; font-family: monospace; font-size: 36px; }
+        .continueScreen .chave-info {
+            background: rgba(255,215,0,0.15);
+            padding: 10px;
+            border-radius: 15px;
+            margin: 10px 0;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        .continueOptions { display: flex; gap: 20px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+        .continueBtn {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-family: monospace;
+            font-weight: bold;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.12s ease;
+            min-width: 150px;
+        }
+        .continueBtn:hover { transform: scale(1.05); }
+        .continueBtn.yellow { background: linear-gradient(135deg, #FFD700, #FFA000); color: #1a1a2e; }
+        .continueBtn.gray { background: #555; color: #fff; }
+        .continueBtn.green { background: #2ecc71; color: #fff; }
+
+        .difficultyScreen {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(30,60,100,0.96), rgba(20,40,80,0.98));
+            backdrop-filter: blur(20px);
+            color: white;
+            z-index: 400;
+            text-align: center;
+            border: 4px solid #ffd966;
+            padding: 40px 35px;
+            width: 65%;
+            max-width: 550px;
+            border-radius: 50px;
+            box-shadow: 0 30px 50px rgba(0,0,0,0.6);
+        }
+        .difficultyScreen h1 { font-size: 36px; margin-bottom: 18px; color: #ffd966; font-family: monospace; }
+        .difficultyOptions { display: flex; flex-direction: column; gap: 12px; align-items: center; margin: 18px 0; }
+        .difficultyBtn {
+            padding: 12px 25px;
+            font-size: 14px;
+            font-family: monospace;
+            font-weight: bold;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.12s ease;
+            width: 200px;
+            text-align: center;
+            color: #fff;
+        }
+        .difficultyBtn:hover { transform: scale(1.03); }
+        .difficultyBtn.easy { background: #2ecc71; }
+        .difficultyBtn.normal { background: #f39c12; }
+        .difficultyBtn.hard { background: #e74c3c; }
+ 
+        .startScreen {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1a2a4f, #0f1a2f);
+            backdrop-filter: blur(16px);
+            color: white;
+            z-index: 300;
+            text-align: center;
+            border: 3px solid #ffcc44;
+            padding: 40px 35px;
+            width: 55%;
+            max-width: 500px;
+            cursor: pointer;
+            border-radius: 50px;
+            box-shadow: 0 35px 55px black;
+        }
+        .startScreen:hover { transform: translate(-50%, -50%) scale(1.02); }
+        .startScreen h1 { font-size: 32px; margin-bottom: 15px; color: #ffd966; font-family: monospace; }
+        .gameover-stats { margin: 20px 0; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 30px; }
+        .gameover-stats p { margin: 10px 0; font-size: 18px; }
+        .gameover-stats span { color: #ffd966; font-weight: bold; font-size: 24px; }
+        .restart-text { margin-top: 20px; font-size: 18px; color: #ffcc88; }
+        .hide { display: none; }
+
+        .instructions {
+            position: fixed;
             bottom: 20px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 14px;
-            max-width: 250px;
-            z-index: 1000;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            color: #eee;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 9px;
+            max-width: 200px;
+            z-index: 200;
+            border-right: 3px solid #ffd966;
+            pointer-events: none;
         }
-        .instructions h3 {
-            margin-top: 0;
+        
+        /* ===== MINI MENU DE PAUSA ===== */
+        .pauseMenuOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            z-index: 6000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .pauseMenuOverlay.active { display: flex; }
+        
+        .pauseMenuContainer {
+            background: linear-gradient(145deg, #1a2a4f, #0f1a2f);
+            border: 3px solid #ffd966;
+            border-radius: 30px;
+            padding: 30px 40px;
+            min-width: 320px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 30px 50px rgba(0,0,0,0.8);
+            text-align: center;
+        }
+        .pauseMenuContainer h2 {
+            color: #ffd966;
+            font-family: monospace;
+            font-size: 28px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(255,215,0,0.2);
+        }
+        .pauseMenuItem {
+            background: rgba(255,255,255,0.06);
+            border: 2px solid rgba(255,215,0,0.2);
+            border-radius: 16px;
+            padding: 14px 20px;
+            margin: 12px 0;
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            justify-content: center;
+            font-family: 'Segoe UI', monospace;
+            letter-spacing: 0.5px;
+        }
+        .pauseMenuItem:hover {
+            background: rgba(255,215,0,0.12);
+            border-color: #ffd966;
+            transform: scale(1.03);
+            box-shadow: 0 0 25px rgba(255,215,0,0.1);
+        }
+        .pauseMenuItem .icon { font-size: 24px; }
+        .pauseMenuItem .label { flex: 1; text-align: left; }
+        .pauseMenuItem .status { font-size: 14px; opacity: 0.7; }
+        
+        .pauseMenuClose {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #e74c3c;
+            border: none;
+            border-radius: 50px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: monospace;
+        }
+        .pauseMenuClose:hover { transform: scale(1.05); background: #c0392b; }
+        
+        /* ===== SUB-MENU: TUTORIAL ===== */
+        .tutorialOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(6px);
+            z-index: 7000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .tutorialOverlay.active { display: flex; }
+        .tutorialBox {
+            background: linear-gradient(145deg, #1a2a4f, #0f1a2f);
+            border: 3px solid #ffd966;
+            border-radius: 30px;
+            padding: 30px 35px;
+            max-width: 450px;
+            width: 90%;
+            color: #fff;
+            box-shadow: 0 30px 50px rgba(0,0,0,0.9);
+        }
+        .tutorialBox h2 {
+            color: #ffd966;
+            font-family: monospace;
+            font-size: 26px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .tutorialGrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .tutorialItem {
+            background: rgba(0,0,0,0.4);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .tutorialItem .key {
+            font-size: 22px;
+            font-weight: bold;
+            color: #ffd966;
+            font-family: monospace;
+        }
+        .tutorialItem .action {
+            font-size: 13px;
+            color: #ccc;
+            margin-top: 4px;
+        }
+        .tutorialClose {
+            display: block;
+            margin: 20px auto 0;
+            padding: 10px 30px;
+            background: #2ecc71;
+            border: none;
+            border-radius: 50px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: monospace;
+        }
+        .tutorialClose:hover { transform: scale(1.05); background: #27ae60; }
+        
+        /* ===== SUB-MENU: LOJA HORIZONTAL COM SETAS ===== */
+        .shopHorizontalOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            z-index: 7000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .shopHorizontalOverlay.active { display: flex; }
+        .shopHorizontalBox {
+            background: linear-gradient(145deg, #1a2a4f, #0f1a2f);
+            border: 3px solid #ffd966;
+            border-radius: 30px;
+            padding: 25px 30px;
+            max-width: 750px;
+            width: 95%;
+            color: #fff;
+            box-shadow: 0 30px 50px rgba(0,0,0,0.9);
+            text-align: center;
+            position: relative;
+        }
+        .shopHorizontalBox h2 {
+            color: #ffd966;
+            font-family: monospace;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .shopHorizontalBox .shopCoins {
             color: #ffd700;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .shopHorizontalBox .shop-nav-hint {
+            font-size: 12px;
+            color: rgba(255,255,255,0.3);
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        .shopHorizontalBox .shop-nav-hint span { color: #ffd966; }
+        
+        .shopCarouselWrapper {
+            position: relative;
+            overflow: hidden;
+            padding: 10px 0;
+        }
+        .shopCarousel {
+            display: flex;
+            gap: 12px;
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            padding: 0 10px;
+            will-change: transform;
+        }
+        .carouselItem {
+            min-width: 130px;
+            max-width: 150px;
+            padding: 12px 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 16px;
+            border: 2px solid rgba(255,255,255,0.08);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            flex-shrink: 0;
+            scroll-snap-align: center;
+        }
+        .carouselItem:hover { border-color: #ffd966; transform: scale(1.05); }
+        .carouselItem.selected {
+            border-color: #ffd966;
+            box-shadow: 0 0 30px rgba(255,215,0,0.25);
+            background: rgba(255,215,0,0.08);
+        }
+        .carouselItem.owned { border-color: #00ff88; }
+        .carouselItem .carPreview {
+            width: 80px;
+            height: 110px;
+            margin: 0 auto;
+            background-repeat: no-repeat;
+            background-size: contain;
+            background-position: center;
+        }
+        .carouselItem .carName { font-size: 12px; color: #fff; margin-top: 4px; }
+        .carouselItem .carPrice { font-size: 11px; color: #ffd966; }
+        .carouselItem .carStatus { font-size: 10px; color: #00ff88; }
+        
+        .shopArrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.7);
+            border: 2px solid rgba(255,215,0,0.3);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            color: #ffd966;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            z-index: 10;
+            font-family: monospace;
+            user-select: none;
+        }
+        .shopArrow:hover {
+            background: rgba(255,215,0,0.15);
+            border-color: #ffd966;
+            transform: translateY(-50%) scale(1.1);
+        }
+        .shopArrow.left { left: 0; }
+        .shopArrow.right { right: 0; }
+        
+        .shopHorizontalClose {
+            margin-top: 18px;
+            padding: 10px 30px;
+            background: #e74c3c;
+            border: none;
+            border-radius: 50px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: monospace;
+        }
+        .shopHorizontalClose:hover { transform: scale(1.05); background: #c0392b; }
+
+        /* ===== SUB-MENU: MÚSICA ===== */
+        .musicSubMenu {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            border: 1px solid rgba(255,215,0,0.15);
+        }
+        .musicSubMenu .musicOption {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 12px;
+            margin: 5px 0;
+        }
+        .musicSubMenu .musicOption .label { font-size: 16px; }
+        .musicToggleBtn {
+            padding: 6px 18px;
+            border-radius: 30px;
+            border: 2px solid rgba(255,215,0,0.3);
+            background: transparent;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: monospace;
+        }
+        .musicToggleBtn.on { border-color: #2ecc71; color: #2ecc71; background: rgba(46,204,113,0.1); }
+        .musicToggleBtn.off { border-color: #e74c3c; color: #e74c3c; background: rgba(231,76,60,0.1); }
+        .musicToggleBtn:hover { transform: scale(1.05); }
+
+        @media (max-width: 1800px) { .gameArea { transform: scale(0.9); transform-origin: center; } }
+        @media (max-width: 1600px) { .gameArea { transform: scale(0.85); transform-origin: center; } }
+        @media (max-width: 1400px) { .gameArea { transform: scale(0.8); transform-origin: center; } }
+        @media (max-width: 700px) { 
+            .hudPanel { min-width: 100px; padding: 8px 10px; }
+            .hudPanel .hud-row { font-size: 10px; }
+            .hudPanel .hud-row .value.score { font-size: 14px; }
+            .pauseMenuContainer { min-width: 280px; padding: 20px; }
+            .carouselItem { min-width: 100px; }
+            .shopArrow { width: 34px; height: 34px; font-size: 16px; }
         }
     </style>
 </head>
 <body>
-    <div class="carGame">
-        <div class="score">
-            Score: 0
+<div class="carGame">
+    <audio id="bgMusic" loop preload="auto">
+        <source src="assets/musica.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="coinSound" preload="auto">
+        <source src="assets/coin_sound.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="boostSound" preload="auto">
+        <source src="assets/boost_sound.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="shieldSound" preload="auto">
+        <source src="assets/shield_sound.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="crashSound" preload="auto">
+        <source src="assets/crash_sound.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="shopSound" preload="auto">
+        <source src="assets/shop_sound.mp3" type="audio/mpeg">
+    </audio>
+    
+    <!-- ===== PAINEL HUD UNIFICADO (canto superior direito) ===== -->
+    <div class="hudPanel" id="hudPanel">
+        <div class="hud-row">
+            <span class="label">🏆 SCORE</span>
+            <span class="value score" id="hudScore">0</span>
         </div>
-        <div class="startScreen">
-            <h1>RACE FOR LIFE</h1>
-            <p style="font-size: 18px; margin: 20px 0;">
-                <strong>O Jogo da Corrida pela vida!</strong>
-            </p>
-            <p>
-                <strong>CONTROLES:</strong> Arrow Keys<br>
-                <strong>COLETE:</strong><br>
-                &nbsp;&nbsp; Moedas: +50 pontos<br>
-                &nbsp;&nbsp; Boost de Vel.: Mais rápido por 5s<br>
-                &nbsp;&nbsp; Escudo: Proteção por 7.5s<br>
-                <strong>DESVIE:</strong> Diferentes tipos de carro!<br>
-                <strong>VELOCIDADE:</strong> Aumenta a cada 1500 pontos<br>
-                <br>
-                <span style="color: #ffd700; font-size: 20px;">CLIQUE AQUI PARA INICIAR A PARTIDA!</span>
-            </p>
+        <div class="hud-row">
+            <span class="label">⭐ NÍVEL</span>
+            <span class="value level" id="hudLevel">1</span>
         </div>
-        <div class="gameArea"></div>
+        <div class="hud-row">
+            <span class="label">🚀 VEL</span>
+            <span class="value" id="hudSpeed" style="color:#88ddff;">0</span>
+        </div>
+        <div class="hud-row">
+            <span class="label">🎮 DIF</span>
+            <span class="value" id="hudDifficulty" style="color:#ffaa66;">-</span>
+        </div>
+        <div class="hud-row">
+            <span class="label">🏁 PISTA</span>
+            <span class="value" id="hudTrack" style="color:#99cc99;font-size:11px;">Normal</span>
+        </div>
+        <div class="hud-divider"></div>
+        <div class="hud-inv" id="hudInventory">
+            <span class="inv-badge boost-badge"><span class="icon">⚡</span><span class="count" id="hudBoost">0</span></span>
+            <span class="inv-badge shield-badge"><span class="icon">🛡️</span><span class="count" id="hudShield">0</span></span>
+            <span class="inv-badge key-badge"><span class="icon">🔑</span><span class="count" id="hudKey">0</span></span>
+            <span class="inv-badge gem-badge"><span class="icon">💎</span><span class="count" id="hudGem">0</span></span>
+            <span class="inv-badge luck-badge"><span class="icon">🍀</span><span class="count" id="hudLuck">0</span></span>
+        </div>
+        <div class="hud-record" id="hudRecord">🏆 RECORDE: 0</div>
+        <div class="hud-powerup-bars" id="hudPowerupBars"></div>
+    </div>
+
+    <div class="comboDisplay" id="comboDisplay">🔥 COMBO x0</div>
+    
+    <div class="messageArea" id="messageArea"></div>
+    
+    <div class="continueScreen hide" id="continueScreen">
+        <h2>💀 GAME OVER</h2>
+        <div class="gameover-stats">
+            <p>🏆 SCORE: <span id="continueScore">0</span></p>
+            <p>⭐ NÍVEL: <span id="continueLevel">1</span></p>
+        </div>
+        <div class="chave-info">
+            <p>🔑 CHAVES DISPONÍVEIS: <span id="continueKeys">0</span></p>
+        </div>
+        <div class="continueOptions">
+            <button class="continueBtn yellow" id="useKeyBtn">🔑 USAR CHAVE</button>
+            <button class="continueBtn gray" id="restartBtn">🔄 REINICIAR</button>
+        </div>
+        <p style="margin-top: 10px; font-size: 12px; opacity: 0.6;">💡 Use uma chave para continuar de onde parou</p>
     </div>
     
-    <div class="instructions">
-        <h3> TIPOS DE CARRO:</h3>
-        <p>• Básicos: Normais</p>
-        <p>• Especiais: Raros</p>
-        <p>•  Caminhões: Maiores e Lentos</p>
-        <p>•  Esportivos: Rápidos e Esguios</p>
-        <p><em>Diferentes Velocidades e Comportamentos</em></p>
+    <div class="difficultyScreen" id="difficultyScreen">
+        <h1>🏁 RACE FOR LIFE</h1>
+        <p>ESCOLHA A DIFICULDADE</p>
+        <div class="difficultyOptions">
+            <button class="difficultyBtn easy" data-difficulty="easy">FÁCIL</button>
+            <button class="difficultyBtn normal" data-difficulty="normal">NORMAL</button>
+            <button class="difficultyBtn hard" data-difficulty="hard">DIFÍCIL</button>
+        </div>
     </div>
     
-    <script src="script.js"></script>
+    <div class="startScreen hide" id="startScreen">
+        <h1>🏆 RACE FOR LIFE</h1>
+        <div class="gameover-stats">
+            <p>🏆 SCORE <span id="finalScore">0</span></p>
+            <p>⭐ NÍVEL <span id="finalLevel">1</span></p>
+            <p>🚀 VEL MÁX <span id="finalSpeed">0</span></p>
+            <p>🎮 DIFICULDADE: <span id="finalDifficulty">Normal</span></p>
+        </div>
+        <div class="restart-text">✨ CLIQUE PARA ACELERAR ✨</div>
+    </div>
+    
+    <div class="gameArea"></div>
+</div>
+
+<!-- ===== MINI MENU DE PAUSA ===== -->
+<div class="pauseMenuOverlay" id="pauseMenuOverlay">
+    <div class="pauseMenuContainer">
+        <h2>⏸️ PAUSA</h2>
+        
+        <div class="pauseMenuItem" id="pauseTutorialBtn">
+            <span class="icon">📖</span>
+            <span class="label">Tutorial</span>
+            <span class="status">Controles</span>
+        </div>
+        
+        <div class="pauseMenuItem" id="pauseShopBtn">
+            <span class="icon">🏪</span>
+            <span class="label">Loja</span>
+            <span class="status">← → para navegar</span>
+        </div>
+        
+        <div class="pauseMenuItem" id="pauseMusicBtn">
+            <span class="icon">🎵</span>
+            <span class="label">Música</span>
+            <span class="status" id="pauseMusicStatus">🔊 Ativada</span>
+        </div>
+        
+        <button class="pauseMenuClose" id="pauseMenuClose">✕ FECHAR</button>
+    </div>
+</div>
+
+<!-- ===== SUB-MENU: TUTORIAL ===== -->
+<div class="tutorialOverlay" id="tutorialOverlay">
+    <div class="tutorialBox">
+        <h2>📖 CONTROLES</h2>
+        <div class="tutorialGrid">
+            <div class="tutorialItem"><div class="key">W / ↑</div><div class="action">Acelerar</div></div>
+            <div class="tutorialItem"><div class="key">S / ↓</div><div class="action">Freiar</div></div>
+            <div class="tutorialItem"><div class="key">A / ←</div><div class="action">Esquerda</div></div>
+            <div class="tutorialItem"><div class="key">D / →</div><div class="action">Direita</div></div>
+            <div class="tutorialItem"><div class="key">1</div><div class="action">BOOST ⚡</div></div>
+            <div class="tutorialItem"><div class="key">2</div><div class="action">ESCUDO 🛡️</div></div>
+            <div class="tutorialItem"><div class="key">ENTER</div><div class="action">Pausar</div></div>
+        </div>
+        <button class="tutorialClose" id="tutorialClose">✅ ENTENDI</button>
+    </div>
+</div>
+
+<!-- ===== SUB-MENU: LOJA HORIZONTAL COM SETAS ===== -->
+<div class="shopHorizontalOverlay" id="shopHorizontalOverlay">
+    <div class="shopHorizontalBox">
+        <h2>🏪 LOJA - VITRINE</h2>
+        <div class="shopCoins">🪙 MOEDAS: <span id="shopHorizontalCoins">0</span></div>
+        <div class="shop-nav-hint">← <span>SETAS</span> → para navegar</div>
+        <div class="shopCarouselWrapper">
+            <div class="shopCarousel" id="shopCarousel"></div>
+            <div class="shopArrow left" id="shopArrowLeft">‹</div>
+            <div class="shopArrow right" id="shopArrowRight">›</div>
+        </div>
+        <button class="shopHorizontalClose" id="shopHorizontalClose">✕ FECHAR</button>
+    </div>
+</div>
+
+<div class="instructions">
+    <p>🎮 WASD/SETAS - Movimento</p>
+    <p>⚡ BOOST: 1 ou NUM1</p>
+    <p>🛡️ ESCUDO: 2 ou NUM2</p>
+    <p>⏸️ PAUSE: ENTER</p>
+</div>
+
+<script>
+// ========== CÓDIGO SECRETO ==========
+let secretCode = '';
+const SECRET = '$$$';
+
+document.addEventListener('keydown', (e) => {
+    secretCode += e.key;
+    if (secretCode.length > SECRET.length) {
+        secretCode = secretCode.slice(-SECRET.length);
+    }
+    if (secretCode === SECRET) {
+        secretCode = '';
+        player.totalCoins = 999999;
+        player.score += 10000;
+        inventory.boosts = 3;
+        inventory.shields = 3;
+        inventory.key = Math.min(inventory.key + 1, 2);
+        inventory.gem = 3;
+        inventory.luck = 3;
+        updateUI();
+        showFloatingMessage('💰 DINHEIRO INFINITO!', 'item');
+        showFloatingMessage('⭐ TODOS OS ITENS!', 'gem');
+        playSound('shop');
+        renderShopHorizontal();
+    }
+});
+
+// ========== CONFIGURAÇÕES ==========
+const CONFIG = {
+    playerBaseSpeed: { easy: 8, normal: 10, hard: 12 },
+    playerMaxSpeed: 35,
+    enemyMaxSpeed: 8,
+    enemySpeedMin: 0.50,
+    enemySpeedMax: 0.85,
+    minSpawnDistanceY: 300,
+    minSpawnDistanceX: 100,
+    laneChangeCooldown: 5000,
+    laneChangeChance: 0.003,
+    laneChangeDelay: 2500,
+    maxKeys: 2,
+    maxItemsPerType: 3
+};
+
+// ========== VARIÁVEIS GLOBAIS ==========
+const gameArea = document.querySelector('.gameArea');
+const LANES = [530, 720, 940, 1135];
+const LEFT_LIMIT = 490;
+const RIGHT_LIMIT = 1135 + 120;
+const CAR_WIDTH = 145;
+const CAR_HEIGHT = 215;
+
+const CAR_TYPES = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'black', 'white', 'sports', 'truck', 'police', 'taxi'];
+const CAR_WEIGHTS = [0.12, 0.12, 0.12, 0.08, 0.08, 0.08, 0.08, 0.06, 0.06, 0.08, 0.04, 0.04, 0.04];
+
+let usedCarTypes = [];
+let laneChangeTimers = {};
+
+// ========== ELEMENTOS DOM ==========
+const difficultyScreen = document.getElementById('difficultyScreen');
+const startScreen = document.getElementById('startScreen');
+const continueScreen = document.getElementById('continueScreen');
+const comboDisplay = document.getElementById('comboDisplay');
+const messageArea = document.getElementById('messageArea');
+const keyContinueBtn = document.getElementById('useKeyBtn');
+const restartBtn = document.getElementById('restartBtn');
+
+// HUD Elementos
+const hudScore = document.getElementById('hudScore');
+const hudLevel = document.getElementById('hudLevel');
+const hudSpeed = document.getElementById('hudSpeed');
+const hudDifficulty = document.getElementById('hudDifficulty');
+const hudTrack = document.getElementById('hudTrack');
+const hudBoost = document.getElementById('hudBoost');
+const hudShield = document.getElementById('hudShield');
+const hudKey = document.getElementById('hudKey');
+const hudGem = document.getElementById('hudGem');
+const hudLuck = document.getElementById('hudLuck');
+const hudRecord = document.getElementById('hudRecord');
+const hudPowerupBars = document.getElementById('hudPowerupBars');
+
+// Pause Menu
+const pauseMenuOverlay = document.getElementById('pauseMenuOverlay');
+const pauseTutorialBtn = document.getElementById('pauseTutorialBtn');
+const pauseShopBtn = document.getElementById('pauseShopBtn');
+const pauseMusicBtn = document.getElementById('pauseMusicBtn');
+const pauseMenuClose = document.getElementById('pauseMenuClose');
+const pauseMusicStatus = document.getElementById('pauseMusicStatus');
+
+// Tutorial
+const tutorialOverlay = document.getElementById('tutorialOverlay');
+const tutorialClose = document.getElementById('tutorialClose');
+
+// Shop Horizontal
+const shopHorizontalOverlay = document.getElementById('shopHorizontalOverlay');
+const shopCarousel = document.getElementById('shopCarousel');
+const shopHorizontalCoins = document.getElementById('shopHorizontalCoins');
+const shopHorizontalClose = document.getElementById('shopHorizontalClose');
+const shopArrowLeft = document.getElementById('shopArrowLeft');
+const shopArrowRight = document.getElementById('shopArrowRight');
+
+// ========== ESTADO DO JOGO ==========
+let currentDifficulty = 'normal';
+let isPaused = false;
+let gameAnimationId = null;
+let respawnEnemyInterval = null;
+let isRespawning = false;
+let gameOverState = null;
+let frameSkip = 0;
+let keyUsedThisRun = false;
+
+let player = {
+    speed: 10, score: 0, start: false, baseSpeed: 10,
+    level: 1, x: 830, y: 0, difficultyMultiplier: 1, maxSpeed: 10,
+    totalCoins: 0, isDead: false
+};
+
+let inventory = { boosts: 0, shields: 0, key: 0, gem: 0, luck: 0, maxPerType: 3 };
+let activeEffects = { boost: false, boostTimer: 0, shield: false, shieldTimer: 0, luck: false, luckTimer: 0 };
+
+let keys = {
+    ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+    KeyW: false, KeyS: false, KeyA: false, KeyD: false,
+    Digit1: false, Digit2: false,
+    Numpad1: false, Numpad2: false
+};
+
+// ========== COMBO ==========
+let comboCount = 0;
+let comboMultiplier = 1;
+let comboTimeout = null;
+const COMBO_WINDOW = 2000;
+
+// ========== DIFICULDADE ==========
+const difficultySettings = {
+    easy: { name: 'Fácil', baseSpeed: 8, enemySpawnCount: 4, scoreMultiplier: 1.5, powerUpCount: { coins: 18, boosts: 5, shields: 3 } },
+    normal: { name: 'Normal', baseSpeed: 10, enemySpawnCount: 5, scoreMultiplier: 2, powerUpCount: { coins: 15, boosts: 4, shields: 2 } },
+    hard: { name: 'Difícil', baseSpeed: 12, enemySpawnCount: 6, scoreMultiplier: 2.5, powerUpCount: { coins: 12, boosts: 3, shields: 1 } }
+};
+
+// ========== PISTAS ==========
+const trackStyles = {
+    normal: { name: '🏁 Normal', image: 'assets/sao_luis.png', minScore: 0 },
+    primavera: { name: '🌸 Primavera', image: 'assets/curitiba.png', minScore: 2000 },
+    outono: { name: '🍂 Outono', image: 'assets/londres.png', minScore: 5000 },
+    deserto: { name: '🏜️ Deserto', image: 'assets/saara.png', minScore: 8000 },
+    neve: { name: '❄️ Neve', image: 'assets/alaska.png', minScore: 12000 }
+};
+
+let currentTrack = 'normal';
+
+// ========== LOJA ==========
+let ownedCars = [];
+let selectedCar = 0;
+let shopCarouselIndex = 0;
+const CAR_LIST = [
+    { id: 'player_car', name: 'Padrão', price: 0, file: 'player_car.png' },
+    { id: 'enemy_red', name: 'Vermelho', price: 500, file: 'enemy_red.png' },
+    { id: 'enemy_blue', name: 'Azul', price: 500, file: 'enemy_blue.png' },
+    { id: 'enemy_green', name: 'Verde', price: 500, file: 'enemy_green.png' },
+    { id: 'enemy_yellow', name: 'Amarelo', price: 500, file: 'enemy_yellow.png' },
+    { id: 'enemy_purple', name: 'Roxo', price: 500, file: 'enemy_purple.png' },
+    { id: 'enemy_orange', name: 'Laranja', price: 800, file: 'enemy_orange.png' },
+    { id: 'enemy_pink', name: 'Rosa', price: 800, file: 'enemy_pink.png' },
+    { id: 'enemy_black', name: 'Preto', price: 1000, file: 'enemy_black.png' },
+    { id: 'enemy_white', name: 'Branco', price: 1000, file: 'enemy_white.png' },
+    { id: 'enemy_sports', name: 'Esportivo', price: 1500, file: 'enemy_sports.png' },
+    { id: 'enemy_taxi', name: 'Táxi', price: 1200, file: 'enemy_taxi.png' },
+    { id: 'enemy_police', name: 'Polícia', price: 2000, file: 'enemy_police.png' },
+    { id: 'enemy_truck', name: 'Caminhão', price: 2500, file: 'enemy_truck.png' }
+];
+
+let highScore = parseInt(localStorage.getItem('raceForLifeHighScore')) || 0;
+
+// ========== FUNÇÕES DE ÁUDIO ==========
+function playSound(type) {
+    try {
+        let audio;
+        switch(type) {
+            case 'coin': audio = document.getElementById('coinSound'); break;
+            case 'boost': audio = document.getElementById('boostSound'); break;
+            case 'shield': audio = document.getElementById('shieldSound'); break;
+            case 'crash': audio = document.getElementById('crashSound'); break;
+            case 'shop': audio = document.getElementById('shopSound'); break;
+            default: return;
+        }
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+        }
+    } catch(e) {}
+}
+
+// ========== FUNÇÕES DE MENSAGEM ==========
+function showFloatingMessage(text, type = 'normal') {
+    const msg = document.createElement('div');
+    const classes = {
+        'boost': 'floatingMessage boost',
+        'shield': 'floatingMessage shield',
+        'key': 'floatingMessage key',
+        'respawn': 'floatingMessage respawn',
+        'item': 'floatingMessage item',
+        'warning': 'floatingMessage warning',
+        'gem': 'floatingMessage gem',
+        'luck': 'floatingMessage luck',
+        'normal': 'floatingMessage'
+    };
+    msg.className = classes[type] || classes.normal;
+    msg.textContent = text;
+    if (messageArea) messageArea.appendChild(msg);
+    setTimeout(() => msg.remove(), 1800);
+}
+
+function showInventoryMessage(text, color = '#ffd966') {
+    let stack = document.querySelector('.messageStack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.className = 'messageStack';
+        document.body.appendChild(stack);
+    }
+    const msg = document.createElement('div');
+    msg.className = 'smallMessage';
+    msg.textContent = text;
+    msg.style.borderColor = color;
+    stack.appendChild(msg);
+    requestAnimationFrame(() => msg.classList.add('show'));
+    setTimeout(() => {
+        msg.classList.remove('show');
+        setTimeout(() => { msg.remove(); }, 260);
+    }, 1400);
+}
+
+// ========== LOJA ==========
+function loadShop() {
+    const saved = localStorage.getItem('raceForLifeOwnedCars');
+    if (saved) { ownedCars = JSON.parse(saved); } 
+    else { ownedCars = ['player_car']; }
+    const savedSelected = localStorage.getItem('raceForLifeSelectedCar');
+    if (savedSelected) { selectedCar = parseInt(savedSelected); }
+    shopCarouselIndex = selectedCar;
+    renderShopHorizontal();
+}
+
+function saveShop() {
+    localStorage.setItem('raceForLifeOwnedCars', JSON.stringify(ownedCars));
+    localStorage.setItem('raceForLifeSelectedCar', String(selectedCar));
+}
+
+function renderShopHorizontal() {
+    if (!shopCarousel) return;
+    shopCarousel.innerHTML = '';
+    CAR_LIST.forEach((car, index) => {
+        const div = document.createElement('div');
+        div.className = 'carouselItem';
+        if (ownedCars.includes(car.id)) div.classList.add('owned');
+        if (selectedCar === index) div.classList.add('selected');
+        div.innerHTML = `
+            <div class="carPreview" style="background-image: url('assets/${car.file}');"></div>
+            <div class="carName">${car.name}</div>
+            <div class="carPrice">${ownedCars.includes(car.id) ? '✅' : `🪙 ${car.price}`}</div>
+            <div class="carStatus">${selectedCar === index ? '⭐' : ownedCars.includes(car.id) ? '👆' : '🛒'}</div>
+        `;
+        div.addEventListener('click', () => {
+            handleShopClick(index);
+            renderShopHorizontal();
+        });
+        shopCarousel.appendChild(div);
+    });
+    if (shopHorizontalCoins) shopHorizontalCoins.textContent = player.totalCoins || 0;
+    updateShopCarouselPosition();
+}
+
+function updateShopCarouselPosition() {
+    const items = shopCarousel.querySelectorAll('.carouselItem');
+    if (items.length === 0) return;
+    const totalItems = items.length;
+    const visibleItems = Math.min(5, totalItems);
+    const itemWidth = items[0].offsetWidth + 12 || 142;
+    const maxIndex = Math.max(0, totalItems - visibleItems);
+    shopCarouselIndex = Math.max(0, Math.min(shopCarouselIndex, maxIndex));
+    const offset = shopCarouselIndex * itemWidth;
+    shopCarousel.style.transform = `translateX(-${offset}px)`;
+    
+    // Scroll para o item selecionado
+    const selected = shopCarousel.querySelector('.carouselItem.selected');
+    if (selected) {
+        const index = Array.from(items).indexOf(selected);
+        if (index >= 0) {
+            const targetIndex = Math.max(0, Math.min(index, maxIndex));
+            if (targetIndex !== shopCarouselIndex) {
+                shopCarouselIndex = targetIndex;
+                shopCarousel.style.transform = `translateX(-${targetIndex * itemWidth}px)`;
+            }
+        }
+    }
+}
+
+function shopNavigate(direction) {
+    const items = shopCarousel.querySelectorAll('.carouselItem');
+    if (items.length === 0) return;
+    const totalItems = items.length;
+    const visibleItems = Math.min(5, totalItems);
+    const maxIndex = Math.max(0, totalItems - visibleItems);
+    shopCarouselIndex = Math.max(0, Math.min(shopCarouselIndex + direction, maxIndex));
+    const itemWidth = items[0].offsetWidth + 12 || 142;
+    shopCarousel.style.transform = `translateX(-${shopCarouselIndex * itemWidth}px)`;
+}
+
+function handleShopClick(index) {
+    const car = CAR_LIST[index];
+    if (ownedCars.includes(car.id)) {
+        selectedCar = index;
+        saveShop();
+        renderShopHorizontal();
+        showFloatingMessage(`🚗 ${car.name} SELECIONADO!`, 'item');
+        playSound('shop');
+        updatePlayerCar();
+        updateUI();
+    } else {
+        if ((player.totalCoins || 0) >= car.price) {
+            player.totalCoins -= car.price;
+            ownedCars.push(car.id);
+            selectedCar = index;
+            saveShop();
+            renderShopHorizontal();
+            updateUI();
+            showFloatingMessage(`🚗 ${car.name} COMPRADO! 🎉`, 'item');
+            playSound('shop');
+            updatePlayerCar();
+        } else {
+            showFloatingMessage(`⚠️ MOEDAS INSUFICIENTES! (${car.price} necessário)`, 'warning');
+        }
+    }
+}
+
+function updatePlayerCar() {
+    const car = document.querySelector('.car');
+    if (!car) return;
+    const selected = CAR_LIST[selectedCar];
+    if (selected) {
+        car.style.backgroundImage = `url('assets/${selected.file}')`;
+        car.style.backgroundSize = `${CAR_WIDTH}px ${CAR_HEIGHT}px`;
+    }
+}
+
+// ========== POWER-UPS ==========
+function useBoost() {
+    if (inventory.boosts > 0 && !activeEffects.boost && !player.isDead) {
+        inventory.boosts--;
+        activeEffects.boost = true;
+        activeEffects.boostTimer = 300;
+        player.speed = Math.min(player.baseSpeed + 8, CONFIG.playerMaxSpeed);
+        const car = document.querySelector('.car');
+        if (car) car.classList.add('boostActive');
+        updateUI();
+        showFloatingMessage('⚡ BOOST ATIVADO (5s)', 'boost');
+        playSound('boost');
+    } else if (activeEffects.boost) {
+        showInventoryMessage('⚡ BOOST JÁ ATIVO!', '#ffaa00');
+    } else if (inventory.boosts === 0) {
+        showInventoryMessage('⚠️ SEM BOOSTS!', '#ff6666');
+    }
+}
+
+function useShield() {
+    if (inventory.shields > 0 && !activeEffects.shield && !player.isDead) {
+        inventory.shields--;
+        activeEffects.shield = true;
+        activeEffects.shieldTimer = 450;
+        const car = document.querySelector('.car');
+        if (car) car.classList.add('shieldActive');
+        updateUI();
+        showFloatingMessage('🛡️ ESCUDO ATIVADO (7.5s)', 'shield');
+        playSound('shield');
+    } else if (activeEffects.shield) {
+        showInventoryMessage('🛡️ ESCUDO JÁ ATIVO!', '#ffaa00');
+    } else if (inventory.shields === 0) {
+        showInventoryMessage('⚠️ SEM ESCUDOS!', '#ff6666');
+    }
+}
+
+// ========== UI ==========
+function updateUI() {
+    // HUD
+    if (hudScore) hudScore.textContent = Math.floor(player.score);
+    if (hudLevel) hudLevel.textContent = player.level;
+    if (hudSpeed) hudSpeed.textContent = Math.floor(player.speed);
+    if (hudDifficulty) hudDifficulty.textContent = difficultySettings[currentDifficulty].name;
+    if (hudTrack) hudTrack.textContent = trackStyles[currentTrack].name;
+    if (hudBoost) hudBoost.textContent = inventory.boosts;
+    if (hudShield) hudShield.textContent = inventory.shields;
+    if (hudKey) hudKey.textContent = inventory.key;
+    if (hudGem) hudGem.textContent = inventory.gem;
+    if (hudLuck) hudLuck.textContent = inventory.luck;
+    
+    const currentHigh = parseInt(localStorage.getItem('raceForLifeHighScore')) || 0;
+    if (hudRecord) hudRecord.textContent = `🏆 RECORDE: ${Math.max(currentHigh, Math.floor(player.score))}`;
+    
+    let boostPercent = 0, shieldPercent = 0, luckPercent = 0;
+    if (activeEffects.boost) boostPercent = (activeEffects.boostTimer / 300) * 100;
+    if (activeEffects.shield) shieldPercent = (activeEffects.shieldTimer / 450) * 100;
+    if (activeEffects.luck) luckPercent = (activeEffects.luckTimer / 600) * 100;
+    
+    if (hudPowerupBars) {
+        hudPowerupBars.innerHTML = `
+            ${activeEffects.boost ? `<div class="bar-wrap">🔥 <div class="bar-track"><div class="bar-fill boost-fill" style="width:${boostPercent}%"></div></div></div>` : ''}
+            ${activeEffects.shield ? `<div class="bar-wrap">🛡️ <div class="bar-track"><div class="bar-fill shield-fill" style="width:${shieldPercent}%"></div></div></div>` : ''}
+            ${activeEffects.luck ? `<div class="bar-wrap">🍀 <div class="bar-track"><div class="bar-fill luck-fill" style="width:${luckPercent}%"></div></div></div>` : ''}
+        `;
+    }
+}
+
+function updateTrackByScore() {
+    let newTrack = 'normal';
+    if (player.score >= 12000) newTrack = 'neve';
+    else if (player.score >= 8000) newTrack = 'deserto';
+    else if (player.score >= 5000) newTrack = 'outono';
+    else if (player.score >= 2000) newTrack = 'primavera';
+    
+    if (currentTrack !== newTrack) {
+        currentTrack = newTrack;
+        const trackInfo = trackStyles[currentTrack];
+        if (gameArea) {
+            gameArea.style.backgroundImage = `url('${trackInfo.image}')`;
+            gameArea.style.backgroundSize = '1800px auto';
+        }
+        updateUI();
+    }
+}
+
+// ========== FUNÇÕES DE COLISÃO ==========
+function isCollide(a, b) {
+    if (!a || !b) return false;
+    try {
+        const ar = a.getBoundingClientRect();
+        const br = b.getBoundingClientRect();
+        const margin = 10;
+        return !((ar.bottom - margin < br.top + margin) || 
+                 (ar.top + margin > br.bottom - margin) ||
+                 (ar.right - margin < br.left + margin) || 
+                 (ar.left + margin > br.right - margin));
+    } catch(e) { return false; }
+}
+
+// ========== FUNÇÕES DE INIMIGOS ==========
+function getRandomCarType() {
+    let available = CAR_TYPES.filter(t => !usedCarTypes.includes(t));
+    if (available.length === 0) {
+        usedCarTypes = [];
+        available = CAR_TYPES;
+    }
+    const type = available[Math.floor(Math.random() * available.length)];
+    usedCarTypes.push(type);
+    if (usedCarTypes.length > 5) usedCarTypes.shift();
+    return type;
+}
+
+function getCarDimensions(type) {
+    switch(type) {
+        case 'truck': return { h: 255, w: 175 };
+        case 'police': case 'taxi': return { h: 211, w: 143 };
+        case 'sports': return { h: 195, w: 131 };
+        default: return { h: 205, w: 135 };
+    }
+}
+
+function spawnEnemyAtSafePosition(yPos = null, preferredLane = null) {
+    if (!gameArea || player.isDead) return null;
+    const enemies = document.querySelectorAll('.enemy');
+    const yBase = yPos !== null ? Math.min(yPos, -700) : -900 - Math.random() * 300;
+    const finalY = Math.min(yBase, -600);
+    
+    let lane;
+    if (preferredLane !== null && LANES.includes(preferredLane)) {
+        lane = preferredLane;
+    } else {
+        const availableLanes = LANES.filter(l => {
+            for (let e of enemies) {
+                const eLane = parseInt(e.style.left) || 0;
+                if (Math.abs(eLane - l) < 100) return false;
+            }
+            return true;
+        });
+        lane = availableLanes.length > 0 ? availableLanes[Math.floor(Math.random() * availableLanes.length)] : LANES[0];
+    }
+    
+    const carType = getRandomCarType();
+    const dims = getCarDimensions(carType);
+    const enemy = document.createElement('div');
+    enemy.className = `enemy ${carType}`;
+    enemy.style.height = dims.h + 'px';
+    enemy.style.width = dims.w + 'px';
+    enemy.style.backgroundSize = `${dims.w}px ${dims.h}px`;
+    enemy.y = finalY;
+    enemy.style.top = finalY + 'px';
+    enemy.style.left = lane + 'px';
+    enemy.dataset.targetLane = lane;
+    enemy.dataset.spawned = 'true';
+    enemy.dataset.speedMultiplier = (CONFIG.enemySpeedMin + Math.random() * (CONFIG.enemySpeedMax - CONFIG.enemySpeedMin)).toFixed(3);
+    enemy.dataset.spawnTime = String(Date.now());
+    enemy.dataset.lastMoveTime = String(Date.now());
+    
+    gameArea.appendChild(enemy);
+    return enemy;
+}
+
+function respawnEnemy(enemy) {
+    const enemies = Array.from(document.querySelectorAll('.enemy')).filter(e => e !== enemy);
+    const playerCar = document.querySelector('.car');
+    const playerX = playerCar ? parseInt(playerCar.style.left) || 830 : 830;
+    
+    let attempts = 0;
+    let chosenLane = LANES[Math.floor(Math.random() * LANES.length)];
+    let newY = -600 - Math.random() * 300;
+    
+    while (attempts < 10) {
+        let conflict = false;
+        if (Math.abs(chosenLane - playerX) < 100) conflict = true;
+        for (let e of enemies) {
+            const eLane = parseInt(e.style.left) || 0;
+            const eY = e.y || parseInt(e.style.top) || 0;
+            if (Math.abs(eLane - chosenLane) < 80 && Math.abs(eY - newY) < 280) {
+                conflict = true;
+                break;
+            }
+        }
+        if (!conflict) break;
+        chosenLane = LANES[Math.floor(Math.random() * LANES.length)];
+        newY = -600 - Math.random() * 300;
+        attempts++;
+    }
+    
+    const newType = getRandomCarType();
+    const dims = getCarDimensions(newType);
+    enemy.className = `enemy ${newType}`;
+    enemy.style.height = dims.h + 'px';
+    enemy.style.width = dims.w + 'px';
+    enemy.style.backgroundSize = `${dims.w}px ${dims.h}px`;
+    enemy.y = newY;
+    enemy.style.top = newY + 'px';
+    enemy.style.left = chosenLane + 'px';
+    enemy.dataset.targetLane = String(chosenLane);
+    enemy.dataset.spawned = 'true';
+    enemy.dataset.spawnTime = String(Date.now());
+    enemy.dataset.lastMoveTime = String(Date.now());
+    enemy.dataset.speedMultiplier = (CONFIG.enemySpeedMin + Math.random() * (CONFIG.enemySpeedMax - CONFIG.enemySpeedMin)).toFixed(3);
+}
+
+// ========== SISTEMA DE TROCA DE FAIXA COM LUZES ==========
+function checkLaneChange() {
+    if (player.isDead) return;
+    const enemies = document.querySelectorAll('.enemy');
+    if (enemies.length === 0) return;
+    
+    const now = Date.now();
+    
+    for (let enemy of enemies) {
+        if (enemy.dataset.changing === 'true') continue;
+        
+        const lastChange = parseInt(enemy.dataset.lastLaneChange) || 0;
+        if (now - lastChange < CONFIG.laneChangeCooldown) continue;
+        
+        const mult = parseFloat(enemy.dataset.speedMultiplier) || 0.5;
+        const chance = CONFIG.laneChangeChance * (mult * 1.2);
+        if (Math.random() > chance) continue;
+        
+        const currentLeft = parseInt(enemy.style.left) || 0;
+        let currentLaneIndex = LANES.indexOf(currentLeft);
+        if (currentLaneIndex === -1) continue;
+        
+        let directions = [];
+        if (currentLaneIndex > 0) directions.push(-1);
+        if (currentLaneIndex < LANES.length - 1) directions.push(1);
+        if (directions.length === 0) continue;
+        
+        const dir = directions[Math.floor(Math.random() * directions.length)];
+        const newLaneIndex = currentLaneIndex + dir;
+        if (newLaneIndex < 0 || newLaneIndex >= LANES.length) continue;
+        const newLane = LANES[newLaneIndex];
+        
+        let blocked = false;
+        for (let e of document.querySelectorAll('.enemy')) {
+            if (e === enemy) continue;
+            const eLane = parseInt(e.style.left) || 0;
+            const eY = e.y || parseInt(e.style.top) || 0;
+            if (Math.abs(eLane - newLane) < 80 && Math.abs(eY - (enemy.y || parseInt(enemy.style.top) || 0)) < 350) {
+                blocked = true;
+                break;
+            }
+        }
+        if (blocked) continue;
+        
+        const playerCar = document.querySelector('.car');
+        if (playerCar) {
+            const playerX = parseInt(playerCar.style.left) || 0;
+            if (Math.abs(playerX - newLane) < 100) {
+                const playerY = parseInt(playerCar.style.top) || 0;
+                const enemyY = enemy.y || parseInt(enemy.style.top) || 0;
+                if (Math.abs(playerY - enemyY) < 500) continue;
+            }
+        }
+        
+        enemy.dataset.changing = 'true';
+        enemy.dataset.lastLaneChange = String(now);
+        
+        const dirText = dir === 1 ? 'direita' : 'esquerda';
+        
+        const lightTop = document.createElement('div');
+        lightTop.className = `seta-light ${dirText} top`;
+        lightTop.style.left = (parseInt(enemy.style.left) + (dir === 1 ? 100 : 20)) + 'px';
+        lightTop.style.top = (parseInt(enemy.style.top) + 5) + 'px';
+        
+        const lightBottom = document.createElement('div');
+        lightBottom.className = `seta-light ${dirText} bottom`;
+        lightBottom.style.left = (parseInt(enemy.style.left) + (dir === 1 ? 100 : 20)) + 'px';
+        lightBottom.style.top = (parseInt(enemy.style.top) + 175) + 'px';
+        
+        const setaGrafica = document.createElement('div');
+        setaGrafica.className = 'seta-grafica show';
+        setaGrafica.textContent = dir === 1 ? '▶' : '◀';
+        setaGrafica.style.left = (parseInt(enemy.style.left) + (dir === 1 ? 130 : -60)) + 'px';
+        setaGrafica.style.top = (parseInt(enemy.style.top) + 50) + 'px';
+        
+        gameArea.appendChild(lightTop);
+        gameArea.appendChild(lightBottom);
+        gameArea.appendChild(setaGrafica);
+        
+        setTimeout(() => {
+            try {
+                if (enemy && enemy.parentNode) {
+                    enemy.style.transition = 'left 0.6s cubic-bezier(0.22, 1, 0.36, 1)';
+                    enemy.style.left = newLane + 'px';
+                    enemy.dataset.targetLane = String(newLane);
+                    enemy.dataset.changing = 'false';
+                }
+            } catch(e) {}
+            
+            if (lightTop && lightTop.parentNode) lightTop.remove();
+            if (lightBottom && lightBottom.parentNode) lightBottom.remove();
+            if (setaGrafica && setaGrafica.parentNode) setaGrafica.remove();
+        }, CONFIG.laneChangeDelay);
+    }
+}
+
+// ========== MOVER INIMIGOS ==========
+function moveEnemy(car) {
+    if (!car || player.isDead) return;
+    const enemies = document.querySelectorAll('.enemy');
+    const gameHeight = gameArea.offsetHeight;
+    const playerSpeed = Math.min(player.speed, CONFIG.playerMaxSpeed);
+    
+    for (let enemy of enemies) {
+        if (enemy.y > -300 && !enemy.dataset.spawned) {
+            enemy.remove();
+            continue;
+        }
+        
+        if (isCollide(car, enemy) && !activeEffects.shield) {
+            if (inventory.luck > 0 && !activeEffects.luck) {
+                inventory.luck--;
+                activeEffects.luck = true;
+                activeEffects.luckTimer = 600;
+                showFloatingMessage('🍀 SORTE ATIVADA! (10s)', 'luck');
+                updateUI();
+                enemy.remove();
+                return;
+            }
+            gameOverState = {
+                score: player.score,
+                level: player.level,
+                speed: player.speed,
+                maxSpeed: player.maxSpeed,
+                totalCoins: player.totalCoins,
+                inventory: { ...inventory },
+                difficulty: currentDifficulty,
+                track: currentTrack
+            };
+            endGame();
+            return;
+        }
+        
+        let mult = parseFloat(enemy.dataset.speedMultiplier) || CONFIG.enemySpeedMin;
+        mult = Math.max(CONFIG.enemySpeedMin, Math.min(mult, CONFIG.enemySpeedMax));
+        let speed = playerSpeed * mult;
+        speed = Math.min(speed, CONFIG.enemyMaxSpeed);
+        speed = Math.max(1.0, speed);
+        
+        enemy.y += speed;
+        enemy.style.top = enemy.y + 'px';
+        
+        if (enemy.dataset.targetLane) {
+            const currentLeft = parseInt(enemy.style.left) || 0;
+            const targetLeft = parseInt(enemy.dataset.targetLane) || 0;
+            const diff = targetLeft - currentLeft;
+            if (Math.abs(diff) > 2) {
+                enemy.style.left = (currentLeft + Math.sign(diff) * Math.min(Math.abs(diff) * 0.05, 1.5)) + 'px';
+            } else if (diff !== 0) {
+                enemy.style.left = targetLeft + 'px';
+                delete enemy.dataset.targetLane;
+            }
+        }
+        
+        if (enemy.y > gameHeight + 450) {
+            respawnEnemy(enemy);
+        }
+    }
+    
+    if (frameSkip % 3 === 0) {
+        try { checkLaneChange(); } catch(e) {}
+    }
+}
+
+// ========== MOVIMENTO DO JOGADOR ==========
+function movePlayerCar(car) {
+    if (player.isDead) return;
+    
+    const speed = Math.max(player.speed, 4);
+    const moveAmount = speed * 1.0;
+    const currentLeft = parseInt(car.style.left) || 830;
+    const currentTop = parseInt(car.style.top) || (gameArea.offsetHeight - CAR_HEIGHT - 50);
+    
+    if (keys.ArrowLeft || keys.KeyA) {
+        let newX = currentLeft - moveAmount;
+        newX = Math.max(LEFT_LIMIT, newX);
+        car.style.left = newX + 'px';
+        car.classList.add('tilt-left');
+        car.classList.remove('tilt-right');
+    } else if (keys.ArrowRight || keys.KeyD) {
+        let newX = currentLeft + moveAmount;
+        newX = Math.min(RIGHT_LIMIT - CAR_WIDTH + 10, newX);
+        car.style.left = newX + 'px';
+        car.classList.add('tilt-right');
+        car.classList.remove('tilt-left');
+    } else {
+        car.classList.remove('tilt-left', 'tilt-right');
+    }
+    
+    const verticalSpeed = 3.5;
+    const minTop = 50;
+    const maxTop = gameArea.offsetHeight - CAR_HEIGHT - 50;
+    
+    if (keys.ArrowUp || keys.KeyW) {
+        let newY = currentTop - verticalSpeed;
+        newY = Math.max(minTop, newY);
+        car.style.top = newY + 'px';
+        player.speed = Math.min(player.speed + 0.15, player.maxSpeed);
+    } else if (keys.ArrowDown || keys.KeyS) {
+        let newY = currentTop + verticalSpeed;
+        newY = Math.min(maxTop, newY);
+        car.style.top = newY + 'px';
+        player.speed = Math.max(player.speed - 0.05, player.baseSpeed * 0.5);
+    } else {
+        if (player.speed > player.baseSpeed) {
+            player.speed = Math.max(player.speed - 0.04, player.baseSpeed);
+        } else if (player.speed < player.baseSpeed) {
+            player.speed = Math.min(player.speed + 0.04, player.baseSpeed);
+        }
+    }
+    
+    player.y = parseInt(car.style.top) || 0;
+}
+
+// ========== MOVER ITENS ==========
+function moveItems(items, className) {
+    const car = document.querySelector('.car');
+    if (!car || player.isDead) return;
+    const gameHeight = gameArea.offsetHeight;
+    
+    for (let item of items) {
+        item.y = (item.y !== undefined ? item.y : parseFloat(item.style.top) || -500);
+        
+        if (item._pickupCooldown && item._pickupCooldown > 0) {
+            item._pickupCooldown--;
+            item.y += player.speed;
+            item.style.top = item.y + "px";
+            if (item.y >= gameHeight + 180) {
+                item.y = -450 - Math.random() * 500;
+                item.style.left = LANES[Math.floor(Math.random() * LANES.length)] + "px";
+            }
+            continue;
+        }
+        
+        if (isCollide(car, item)) {
+            if (className === 'coin') {
+                player.score += 50;
+                player.totalCoins = (player.totalCoins || 0) + 1;
+                playSound('coin');
+                item.remove();
+                updateUI();
+                updateCombo();
+                continue;
+            }
+            else if (className === 'speedBoost') {
+                if (inventory.boosts < CONFIG.maxItemsPerType) {
+                    inventory.boosts++;
+                    showInventoryMessage(`⚡ BOOST +1 (${inventory.boosts}/3)`, "#00ff66");
+                    playSound('boost');
+                    item.remove();
+                    updateUI();
+                    continue;
+                } else {
+                    showInventoryMessage("⚡ BOOST CHEIO! (3/3)", "#ffaa00");
+                    item._pickupCooldown = 30;
+                    item.y += Math.max(160, player.speed * 40);
+                    item.style.top = item.y + 'px';
+                }
+            }
+            else if (className === 'shield') {
+                if (inventory.shields < CONFIG.maxItemsPerType) {
+                    inventory.shields++;
+                    showInventoryMessage(`🛡️ ESCUDO +1 (${inventory.shields}/3)`, "#44ffff");
+                    playSound('shield');
+                    item.remove();
+                    updateUI();
+                    continue;
+                } else {
+                    showInventoryMessage("🛡️ ESCUDO CHEIO! (3/3)", "#ffaa00");
+                    item._pickupCooldown = 30;
+                    item.y += Math.max(160, player.speed * 40);
+                    item.style.top = item.y + 'px';
+                }
+            }
+            else if (className === 'keyItem') {
+                if (inventory.key < CONFIG.maxKeys) {
+                    inventory.key++;
+                    showFloatingMessage('🔑 CHAVE LENDÁRIA!', 'key');
+                    playSound('coin');
+                    item.remove();
+                    updateUI();
+                    continue;
+                } else {
+                    showInventoryMessage(`🔑 MÁXIMO DE CHAVES (${CONFIG.maxKeys})`, "#ffaa00");
+                    item._pickupCooldown = 30;
+                    item.y += Math.max(160, player.speed * 40);
+                    item.style.top = item.y + 'px';
+                }
+            }
+            else if (className === 'gemItem') {
+                inventory.gem = (inventory.gem || 0) + 1;
+                showFloatingMessage('💎 GEMA RARA!', 'gem');
+                playSound('coin');
+                item.remove();
+                updateUI();
+                continue;
+            }
+            else if (className === 'luckItem') {
+                inventory.luck = (inventory.luck || 0) + 1;
+                showFloatingMessage('🍀 SORTE +1', 'luck');
+                playSound('coin');
+                item.remove();
+                updateUI();
+                continue;
+            }
+        }
+        
+        if (item.y >= gameHeight + 180) {
+            item.y = -450 - Math.random() * 500;
+            item.style.left = LANES[Math.floor(Math.random() * LANES.length)] + "px";
+        }
+        item.y += player.speed;
+        item.style.top = item.y + "px";
+    }
+}
+
+// ========== UPDATE SCORE ==========
+function updateScore() {
+    if (player.isDead) return;
+    const scoreGain = Math.floor(player.speed / 5) * player.difficultyMultiplier;
+    player.score += scoreGain;
+    player.maxSpeed = Math.max(player.maxSpeed, player.speed);
+    
+    if (scoreGain > 0 && comboCount > 0) {
+        const bonus = Math.floor(scoreGain * (comboMultiplier - 1) * 0.5);
+        player.score += bonus;
+    }
+    
+    player.level = Math.floor(player.score / 200) + 1;
+    const speedIncrement = Math.floor(player.score / 500) * 0.2;
+    player.maxSpeed = Math.min(player.baseSpeed + speedIncrement, CONFIG.playerMaxSpeed);
+    if (!activeEffects.boost) {
+        if (player.speed < player.baseSpeed) {
+            player.speed = Math.min(player.speed + 0.03, player.baseSpeed);
+        }
+    }
+}
+
+// ========== COMBO ==========
+function updateCombo() {
+    comboCount++;
+    if (comboCount === 1) { comboMultiplier = 1; }
+    else if (comboCount >= 20) { comboMultiplier = 3; }
+    else if (comboCount >= 10) { comboMultiplier = 2; }
+    if (comboDisplay) {
+        comboDisplay.textContent = `🔥 COMBO x${comboMultiplier}`;
+        comboDisplay.classList.add('active');
+    }
+    if (comboTimeout) clearTimeout(comboTimeout);
+    comboTimeout = setTimeout(() => {
+        comboCount = 0;
+        comboMultiplier = 1;
+        if (comboDisplay) comboDisplay.classList.remove('active');
+    }, COMBO_WINDOW);
+}
+
+function resetCombo() {
+    comboCount = 0;
+    comboMultiplier = 1;
+    if (comboDisplay) comboDisplay.classList.remove('active');
+    if (comboTimeout) { clearTimeout(comboTimeout); comboTimeout = null; }
+}
+
+// ========== GAME LOOP ==========
+function gameLoop() {
+    if (!player.start || player.isDead) {
+        if (gameAnimationId) {
+            cancelAnimationFrame(gameAnimationId);
+            gameAnimationId = null;
+        }
+        return;
+    }
+    
+    frameSkip++;
+    const car = document.querySelector('.car');
+    if (car && gameArea) {
+        const currentPos = parseFloat(gameArea.style.backgroundPositionY) || 0;
+        gameArea.style.backgroundPositionY = (currentPos + player.speed * 0.8) + 'px';
+        
+        movePlayerCar(car);
+        moveEnemy(car);
+        moveItems(document.querySelectorAll('.coin'), 'coin');
+        moveItems(document.querySelectorAll('.speedBoost'), 'speedBoost');
+        moveItems(document.querySelectorAll('.shield'), 'shield');
+        moveItems(document.querySelectorAll('.keyItem'), 'keyItem');
+        moveItems(document.querySelectorAll('.gemItem'), 'gemItem');
+        moveItems(document.querySelectorAll('.luckItem'), 'luckItem');
+        
+        updateTimers();
+        updateScore();
+        updateTrackByScore();
+        updateUI();
+        
+        if (player.speed > 18) {
+            gameArea.style.filter = `blur(${Math.min((player.speed - 18) / 6, 2)}px)`;
+        } else {
+            gameArea.style.filter = 'blur(0px)';
+        }
+    }
+    
+    gameAnimationId = requestAnimationFrame(gameLoop);
+}
+
+function updateTimers() {
+    if (activeEffects.boost) {
+        activeEffects.boostTimer--;
+        if (activeEffects.boostTimer <= 0) {
+            activeEffects.boost = false;
+            player.speed = player.baseSpeed;
+            const car = document.querySelector('.car');
+            if (car) car.classList.remove('boostActive');
+            showFloatingMessage('⚡ BOOST EXPIRADO', 'normal');
+        }
+    }
+    if (activeEffects.shield) {
+        activeEffects.shieldTimer--;
+        if (activeEffects.shieldTimer <= 0) {
+            activeEffects.shield = false;
+            const car = document.querySelector('.car');
+            if (car) car.classList.remove('shieldActive');
+            showFloatingMessage('🛡️ ESCUDO EXPIRADO', 'normal');
+        }
+    }
+    if (activeEffects.luck) {
+        activeEffects.luckTimer--;
+        if (activeEffects.luckTimer <= 0) {
+            activeEffects.luck = false;
+            showFloatingMessage('🍀 SORTE EXPIRADA', 'normal');
+        }
+    }
+}
+
+// ========== PAUSA COM MINI MENU ==========
+function showPauseMenu() {
+    if (player.isDead) return;
+    isPaused = true;
+    player.start = false;
+    if (gameAnimationId) {
+        cancelAnimationFrame(gameAnimationId);
+        gameAnimationId = null;
+    }
+    pauseMenuOverlay.classList.add('active');
+    updatePauseMusicStatus();
+}
+
+function hidePauseMenu() {
+    isPaused = false;
+    pauseMenuOverlay.classList.remove('active');
+    tutorialOverlay.classList.remove('active');
+    shopHorizontalOverlay.classList.remove('active');
+    if (!player.isDead) {
+        player.start = true;
+        if (gameAnimationId) cancelAnimationFrame(gameAnimationId);
+        gameAnimationId = requestAnimationFrame(gameLoop);
+    }
+}
+
+function updatePauseMusicStatus() {
+    const bgMusic = document.getElementById('bgMusic');
+    if (pauseMusicStatus) {
+        pauseMusicStatus.textContent = (bgMusic && !bgMusic.paused) ? '🔊 Ativada' : '🔇 Desativada';
+    }
+}
+
+// ========== END GAME ==========
+function endGame() {
+    player.start = false;
+    player.isDead = true;
+    if (gameAnimationId) {
+        cancelAnimationFrame(gameAnimationId);
+        gameAnimationId = null;
+    }
+    if (respawnEnemyInterval) clearInterval(respawnEnemyInterval);
+    
+    playSound('crash');
+    
+    const continueScore = document.getElementById('continueScore');
+    const continueLevel = document.getElementById('continueLevel');
+    const continueKeys = document.getElementById('continueKeys');
+    
+    if (continueScore) continueScore.textContent = Math.floor(player.score);
+    if (continueLevel) continueLevel.textContent = player.level;
+    if (continueKeys) continueKeys.textContent = inventory.key;
+    
+    const useKeyBtn = document.getElementById('useKeyBtn');
+    if (inventory.key > 0) {
+        useKeyBtn.style.opacity = '1';
+        useKeyBtn.disabled = false;
+        useKeyBtn.textContent = `🔑 USAR CHAVE (${inventory.key})`;
+    } else {
+        useKeyBtn.style.opacity = '0.5';
+        useKeyBtn.disabled = true;
+        useKeyBtn.textContent = '🔑 SEM CHAVES';
+    }
+    
+    continueScreen.classList.remove('hide');
+}
+
+// ========== CONTINUAR COM CHAVE ==========
+function continueWithKey() {
+    if (inventory.key > 0 && gameOverState) {
+        inventory.key--;
+        keyUsedThisRun = true;
+        continueScreen.classList.add('hide');
+        
+        player.score = gameOverState.score;
+        player.level = gameOverState.level;
+        player.speed = gameOverState.speed;
+        player.maxSpeed = gameOverState.maxSpeed;
+        player.totalCoins = gameOverState.totalCoins;
+        inventory.boosts = gameOverState.inventory.boosts;
+        inventory.shields = gameOverState.inventory.shields;
+        inventory.key = gameOverState.inventory.key;
+        inventory.gem = gameOverState.inventory.gem || 0;
+        inventory.luck = gameOverState.inventory.luck || 0;
+        currentDifficulty = gameOverState.difficulty;
+        currentTrack = gameOverState.track || 'normal';
+        
+        player.isDead = false;
+        player.start = true;
+        
+        document.querySelectorAll('.enemy').forEach(e => e.remove());
+        document.querySelectorAll('.coin, .speedBoost, .shield, .keyItem, .gemItem, .luckItem').forEach(e => e.remove());
+        document.querySelectorAll('.seta-light, .seta-grafica').forEach(e => e.remove());
+        
+        const car = document.querySelector('.car');
+        if (car && gameArea) {
+            car.style.top = (gameArea.offsetHeight - CAR_HEIGHT - 50) + 'px';
+            car.style.left = '830px';
+            car.classList.remove('shieldActive', 'boostActive');
+        }
+        
+        if (gameArea) {
+            gameArea.style.backgroundPositionY = '0px';
+            const trackImage = currentTrack === 'normal' ? 'sao_luis' : currentTrack;
+            gameArea.style.backgroundImage = `url('assets/${trackImage}.png')`;
+            gameArea.style.backgroundSize = '1800px auto';
+            gameArea.style.filter = 'blur(0px)';
+        }
+        
+        for (let i = 0; i < 4; i++) {
+            setTimeout(() => {
+                spawnEnemyAtSafePosition(-700 - i * 200);
+            }, i * 200);
+        }
+        
+        createInitialCollectibles();
+        
+        showFloatingMessage('🔑 CONTINUOU COM CHAVE!', 'respawn');
+        updateUI();
+        
+        if (gameAnimationId) cancelAnimationFrame(gameAnimationId);
+        gameAnimationId = requestAnimationFrame(gameLoop);
+        
+        gameOverState = null;
+    }
+}
+
+// ========== REINICIAR JOGO ==========
+function restartGame() {
+    continueScreen.classList.add('hide');
+    keyUsedThisRun = false;
+    gameOverState = null;
+    if (startScreen) startScreen.classList.remove('hide');
+}
+
+// ========== INIT ==========
+function initGame() {
+    document.querySelectorAll('.enemy').forEach(e => e.remove());
+    document.querySelectorAll('.coin, .speedBoost, .shield, .keyItem, .gemItem, .luckItem').forEach(e => e.remove());
+    document.querySelectorAll('.seta-light, .seta-grafica').forEach(e => e.remove());
+    
+    keyUsedThisRun = false;
+    gameOverState = null;
+    usedCarTypes = [];
+    
+    const diff = difficultySettings[currentDifficulty];
+    player.speed = diff.baseSpeed;
+    player.baseSpeed = diff.baseSpeed;
+    player.maxSpeed = diff.baseSpeed;
+    player.score = 0;
+    player.level = 1;
+    player.start = true;
+    player.isDead = false;
+    player.totalCoins = 0;
+    player.x = 830;
+    player.y = gameArea.offsetHeight - CAR_HEIGHT - 50;
+    
+    inventory.boosts = 0;
+    inventory.shields = 0;
+    inventory.key = 0;
+    inventory.gem = 0;
+    inventory.luck = 0;
+    
+    activeEffects.boost = false;
+    activeEffects.shield = false;
+    activeEffects.luck = false;
+    
+    resetCombo();
+    isPaused = false;
+    pauseMenuOverlay.classList.remove('active');
+    tutorialOverlay.classList.remove('active');
+    shopHorizontalOverlay.classList.remove('active');
+    
+    if (startScreen) startScreen.classList.add('hide');
+    if (continueScreen) continueScreen.classList.add('hide');
+    
+    currentTrack = 'normal';
+    if (gameArea) {
+        gameArea.style.backgroundImage = "url('assets/sao_luis.png')";
+        gameArea.style.backgroundSize = '1800px auto';
+        gameArea.style.backgroundPositionY = '0px';
+        gameArea.style.filter = 'blur(0px)';
+    }
+    
+    let car = document.querySelector('.car');
+    if (!car && gameArea) {
+        car = document.createElement('div');
+        car.className = 'car';
+        gameArea.appendChild(car);
+    }
+    if (car && gameArea) {
+        car.style.top = (gameArea.offsetHeight - CAR_HEIGHT - 50) + 'px';
+        car.style.left = '830px';
+        car.style.display = 'block';
+        car.classList.remove('shieldActive', 'boostActive');
+    }
+    updatePlayerCar();
+    
+    for (let i = 0; i < 4; i++) {
+        setTimeout(() => {
+            spawnEnemyAtSafePosition(-700 - i * 200);
+        }, i * 200);
+    }
+    
+    createInitialCollectibles();
+    
+    if (respawnEnemyInterval) clearInterval(respawnEnemyInterval);
+    respawnEnemyInterval = setInterval(() => {
+        if (player.start && !player.isDead) {
+            const currentEnemies = document.querySelectorAll('.enemy').length;
+            const minEnemies = difficultySettings[currentDifficulty].enemySpawnCount;
+            if (currentEnemies < minEnemies) {
+                spawnEnemyAtSafePosition(-900 - Math.random() * 300);
+            }
+        }
+    }, 4000);
+    
+    updateUI();
+    
+    if (gameAnimationId) cancelAnimationFrame(gameAnimationId);
+    gameAnimationId = requestAnimationFrame(gameLoop);
+}
+
+function createInitialCollectibles() {
+    const powerUps = difficultySettings[currentDifficulty].powerUpCount || { coins: 15, boosts: 4, shields: 2 };
+    
+    for (let i = 0; i < (powerUps.coins || 15); i++) {
+        let c = document.createElement('div');
+        c.className = 'coin';
+        c.y = ((i + 1) * 220) * -1 - Math.random() * 100;
+        c.style.top = c.y + 'px';
+        c.style.left = LANES[Math.floor(Math.random() * LANES.length)] + 'px';
+        if (gameArea) gameArea.appendChild(c);
+    }
+    
+    for (let i = 0; i < (powerUps.boosts || 4); i++) {
+        let b = document.createElement('div');
+        b.className = 'speedBoost';
+        b.y = ((i + 1) * 700) * -1 - Math.random() * 200;
+        b.style.top = b.y + 'px';
+        b.style.left = LANES[Math.floor(Math.random() * LANES.length)] + 'px';
+        if (gameArea) gameArea.appendChild(b);
+    }
+    
+    for (let i = 0; i < (powerUps.shields || 2); i++) {
+        let s = document.createElement('div');
+        s.className = 'shield';
+        s.y = ((i + 1) * 1000) * -1 - Math.random() * 300;
+        s.style.top = s.y + 'px';
+        s.style.left = LANES[Math.floor(Math.random() * LANES.length)] + 'px';
+        if (gameArea) gameArea.appendChild(s);
+    }
+    
+    for (let i = 0; i < 2; i++) {
+        let k = document.createElement('div');
+        k.className = 'keyItem';
+        k.y = ((i + 1) * 1400) * -1 - Math.random() * 400;
+        k.style.top = k.y + 'px';
+        k.style.left = LANES[Math.floor(Math.random() * LANES.length)] + 'px';
+        if (gameArea) gameArea.appendChild(k);
+    }
+}
+
+// ========== SPAWN DE POWER-UPS PERIÓDICO ==========
+setInterval(() => {
+    if (!player.start || player.isDead) return;
+    
+    const types = ['coin', 'coin', 'speedBoost', 'shield'];
+    if (Math.random() < 0.3) {
+        const type = types[Math.floor(Math.random() * types.length)];
+        const lane = LANES[Math.floor(Math.random() * LANES.length)];
+        const y = -100 - Math.random() * 300;
+        
+        let el;
+        switch(type) {
+            case 'coin': el = document.createElement('div'); el.className = 'coin'; break;
+            case 'speedBoost': el = document.createElement('div'); el.className = 'speedBoost'; break;
+            case 'shield': el = document.createElement('div'); el.className = 'shield'; break;
+            default: return;
+        }
+        
+        if (el) {
+            el.style.left = lane + 'px';
+            el.style.top = y + 'px';
+            el.y = y;
+            if (gameArea) gameArea.appendChild(el);
+        }
+    }
+}, 3000);
+
+// ========== CONTROLES DE TECLADO ==========
+document.addEventListener('keydown', (e) => {
+    // Navegação na loja horizontal com setas
+    if (shopHorizontalOverlay.classList.contains('active')) {
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            shopNavigate(-1);
+            return;
+        }
+        if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            shopNavigate(1);
+            return;
+        }
+    }
+    
+    if (e.key === 'Enter' || e.code === 'Enter') {
+        e.preventDefault();
+        if (tutorialOverlay.classList.contains('active')) {
+            tutorialOverlay.classList.remove('active');
+            return;
+        }
+        if (shopHorizontalOverlay.classList.contains('active')) {
+            shopHorizontalOverlay.classList.remove('active');
+            return;
+        }
+        if (pauseMenuOverlay.classList.contains('active')) {
+            hidePauseMenu();
+            return;
+        }
+        if (!isPaused && player.start && !player.isDead) {
+            showPauseMenu();
+        } else if (isPaused) {
+            hidePauseMenu();
+        }
+        return;
+    }
+    
+    if (e.key === '1' || e.code === 'Digit1' || e.code === 'Numpad1') {
+        e.preventDefault();
+        useBoost();
+        return;
+    }
+    
+    if (e.key === '2' || e.code === 'Digit2' || e.code === 'Numpad2') {
+        e.preventDefault();
+        useShield();
+        return;
+    }
+    
+    if (e.key === 'w' || e.key === 'W') { e.preventDefault(); keys.KeyW = true; }
+    if (e.key === 's' || e.key === 'S') { e.preventDefault(); keys.KeyS = true; }
+    if (e.key === 'a' || e.key === 'A') { e.preventDefault(); keys.KeyA = true; }
+    if (e.key === 'd' || e.key === 'D') { e.preventDefault(); keys.KeyD = true; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); keys.ArrowUp = true; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); keys.ArrowDown = true; }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); keys.ArrowLeft = true; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); keys.ArrowRight = true; }
+});
+
+document.addEventListener('keyup', (e) => {
+    if (e.key === 'w' || e.key === 'W') { e.preventDefault(); keys.KeyW = false; }
+    if (e.key === 's' || e.key === 'S') { e.preventDefault(); keys.KeyS = false; }
+    if (e.key === 'a' || e.key === 'A') { e.preventDefault(); keys.KeyA = false; }
+    if (e.key === 'd' || e.key === 'D') { e.preventDefault(); keys.KeyD = false; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); keys.ArrowUp = false; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); keys.ArrowDown = false; }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); keys.ArrowLeft = false; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); keys.ArrowRight = false; }
+});
+
+// ========== EVENTOS DOS MENUS ==========
+// Pause Menu
+pauseTutorialBtn.addEventListener('click', () => {
+    tutorialOverlay.classList.add('active');
+});
+
+tutorialClose.addEventListener('click', () => {
+    tutorialOverlay.classList.remove('active');
+});
+
+pauseShopBtn.addEventListener('click', () => {
+    renderShopHorizontal();
+    shopHorizontalOverlay.classList.add('active');
+    // Centraliza no item selecionado após abrir
+    setTimeout(() => {
+        const items = shopCarousel.querySelectorAll('.carouselItem');
+        const selected = shopCarousel.querySelector('.carouselItem.selected');
+        if (selected) {
+            const index = Array.from(items).indexOf(selected);
+            if (index >= 0) {
+                const totalItems = items.length;
+                const visibleItems = Math.min(5, totalItems);
+                const maxIndex = Math.max(0, totalItems - visibleItems);
+                shopCarouselIndex = Math.max(0, Math.min(index, maxIndex));
+                updateShopCarouselPosition();
+            }
+        }
+    }, 100);
+});
+
+shopHorizontalClose.addEventListener('click', () => {
+    shopHorizontalOverlay.classList.remove('active');
+});
+
+// Setas da loja
+shopArrowLeft.addEventListener('click', () => shopNavigate(-1));
+shopArrowRight.addEventListener('click', () => shopNavigate(1));
+
+pauseMusicBtn.addEventListener('click', () => {
+    const bgMusic = document.getElementById('bgMusic');
+    if (bgMusic) {
+        if (bgMusic.paused) {
+            bgMusic.play().catch(() => {});
+        } else {
+            bgMusic.pause();
+        }
+        updatePauseMusicStatus();
+    }
+});
+
+pauseMenuClose.addEventListener('click', hidePauseMenu);
+
+tutorialOverlay.addEventListener('click', (e) => {
+    if (e.target === tutorialOverlay) tutorialOverlay.classList.remove('active');
+});
+
+shopHorizontalOverlay.addEventListener('click', (e) => {
+    if (e.target === shopHorizontalOverlay) shopHorizontalOverlay.classList.remove('active');
+});
+
+// ========== INICIALIZAÇÃO ==========
+document.addEventListener('DOMContentLoaded', () => {
+    loadShop();
+    
+    if (difficultyScreen) {
+        difficultyScreen.classList.remove('hide');
+    }
+    
+    document.querySelectorAll('.difficultyBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentDifficulty = btn.dataset.difficulty;
+            if (difficultyScreen) {
+                difficultyScreen.classList.add('hide');
+            }
+            initGame();
+        });
+    });
+    
+    if (startScreen) {
+        startScreen.addEventListener('click', () => {
+            if (player.isDead || !player.start) {
+                startScreen.classList.add('hide');
+                initGame();
+            }
+        });
+    }
+    
+    if (restartBtn) {
+        restartBtn.addEventListener('click', restartGame);
+    }
+    
+    if (keyContinueBtn) {
+        keyContinueBtn.addEventListener('click', continueWithKey);
+    }
+    
+    const bgMusic = document.getElementById('bgMusic');
+    let musicPlaying = false;
+    
+    if (bgMusic) {
+        bgMusic.volume = 0.25;
+        bgMusic.loop = true;
+    }
+    
+    document.addEventListener('click', function firstClick() {
+        if (!musicPlaying && bgMusic && bgMusic.paused) {
+            bgMusic.play().catch(() => {});
+            musicPlaying = true;
+            updatePauseMusicStatus();
+        }
+        document.removeEventListener('click', firstClick);
+    }, { once: true });
+});
+
+setInterval(() => {
+    if (player.score > 0 && !player.isDead) {
+        const currentHigh = parseInt(localStorage.getItem('raceForLifeHighScore')) || 0;
+        if (player.score > currentHigh) {
+            localStorage.setItem('raceForLifeHighScore', String(Math.floor(player.score)));
+            if (hudRecord) hudRecord.textContent = `🏆 RECORDE: ${Math.floor(player.score)}`;
+        }
+    }
+}, 5000);
+
+// Atualiza o carrossel quando a janela for redimensionada
+window.addEventListener('resize', () => {
+    if (shopHorizontalOverlay.classList.contains('active')) {
+        updateShopCarouselPosition();
+    }
+});
+</script>
 </body>
 </html>

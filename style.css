@@ -283,3 +283,150 @@
     0%, 100% { opacity: 0.7; }
     50% { opacity: 1; }
 }
+/* ========== NOVOS CARROS ADICIONADOS ========== */
+
+/* Carro Laranja */
+.enemy.orange {
+    background-image: url('assets/enemy_orange.png');
+    background-color: transparent;
+}
+
+/* Carro Rosa */
+.enemy.pink {
+    background-image: url('assets/enemy_pink.png');
+    background-color: transparent;
+}
+
+/* Carro Preto */
+.enemy.black {
+    background-image: url('assets/enemy_black.png');
+    background-color: transparent;
+}
+
+/* Carro Branco */
+.enemy.white {
+    background-image: url('assets/enemy_white.png');
+    background-color: transparent;
+}
+
+/* Carro da Polícia */
+.enemy.police {
+    background-image: url('assets/enemy_police.png');
+    background-color: transparent;
+    height: 100px;
+    width: 65px;
+    background-size: 65px 100px;
+    position: relative;
+}
+
+/* Efeito de luzes da polícia */
+.enemy.police::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 5px;
+    width: 55px;
+    height: 20px;
+    background: radial-gradient(circle, rgba(255,0,0,0.6) 0%, rgba(0,0,255,0.6) 100%);
+    border-radius: 5px;
+    animation: policeLights 0.3s infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes policeLights {
+    0% { opacity: 0.3; background: radial-gradient(circle, rgba(255,0,0,0.8) 0%, rgba(0,0,255,0.2) 100%); }
+    50% { opacity: 1; background: radial-gradient(circle, rgba(0,0,255,0.8) 0%, rgba(255,0,0,0.2) 100%); }
+    100% { opacity: 0.3; background: radial-gradient(circle, rgba(255,0,0,0.8) 0%, rgba(0,0,255,0.2) 100%); }
+}
+
+/* Carro de Táxi */
+.enemy.taxi {
+    background-image: url('assets/enemy_taxi.png');
+    background-color: transparent;
+    height: 100px;
+    width: 65px;
+    background-size: 65px 100px;
+}
+
+/* Efeito de letreiro do táxi */
+.enemy.taxi::after {
+    content: 'TAXI';
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    color: #ffcc00;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ========== ESTILOS ADICIONAIS PARA OS NOVOS CARROS ========== */
+
+/* Efeito de brilho para carros raros (preto e branco) */
+.enemy.black {
+    filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.8)) brightness(0.9);
+}
+
+.enemy.white {
+    filter: drop-shadow(2px 2px 5px rgba(255,255,255,0.5)) brightness(1.1);
+}
+
+/* Animação de entrada para novos carros */
+@keyframes carAppear {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.enemy.orange, 
+.enemy.pink, 
+.enemy.black, 
+.enemy.white, 
+.enemy.police, 
+.enemy.taxi {
+    animation: carAppear 0.3s ease-out;
+}
+
+/* Efeito hover para os novos carros (apenas visual, sem impacto no jogo) */
+.enemy.orange:hover,
+.enemy.pink:hover,
+.enemy.black:hover,
+.enemy.white:hover {
+    filter: brightness(1.2) drop-shadow(2px 2px 5px rgba(0,0,0,0.5));
+    transition: all 0.2s ease;
+}
+
+/* ========== RESPONSIVIDADE PARA OS NOVOS CARROS ========== */
+@media (max-width: 768px) {
+    .enemy.police,
+    .enemy.taxi {
+        width: 50px;
+        background-size: 50px 80px;
+        height: 80px;
+    }
+    
+    .enemy.police::before {
+        width: 40px;
+        height: 15px;
+        top: 8px;
+        left: 5px;
+    }
+    
+    .enemy.taxi::after {
+        font-size: 8px;
+        top: 10px;
+        padding: 1px 3px;
+    }
+}
